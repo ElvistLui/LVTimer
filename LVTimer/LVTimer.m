@@ -1,22 +1,32 @@
-# LVTimer
+//
+//  LVTimer.m
+//  LVTimerDemo
+//
+//  Created by ElvistLui on 2017/11/22.
+//  Copyright © 2017年 Elvist. All rights reserved.
+//
 
-由于NSTimer实例的block初始化方式只支持iOS10+，所以下面的初始化方法更加常见：实例本身作为其成员变量_timer的target。
+#import "LVTimer.h"
 
-```
-_timer = [NSTimer scheduledTimerWithTimeInterval:5.0
-                                          target:self
-                                        selector:@selector(startTimer) userInfo:nil
-                                         repeats:YES];
+// 解决leak警告问题，http://www.jianshu.com/p/6517ab655be7
+#define SuppressPerformSelectorLeakWarning(Stuff) \
+        do { \
+            _Pragma("clang diagnostic push") \
+            _Pragma("clang diagnostic ignored \"-Warc-performSelector-leaks\"") \
+            Stuff; \
+            _Pragma("clang diagnostic pop") \
+        } while (0)
 
-```
+@interface LVTimer()
 
-使用此方法可能遇到的问题是，如果不在合适的时机执行`[_timer invalidate]`,那么就会造成循环引用导致内存泄漏。
+@property (nonatomic, weak) NSTimer *timer;
+@property (nonatomic, weak) id target;
+@property (nonatomic, assign) SEL selector;
 
----
+@end
 
-这里使用一个中间人作为target，重写NSTimer的`+ (NSTimer *)scheduledTimerWithTimeInterval: target: selector: userInfo: repeats:`方法，解除循环引用问题：
+@implementation LVTimer
 
-```
 + (NSTimer *)scheduledTimerWithTimeInterval:(NSTimeInterval)ti
                                      target:(id)aTarget
                                    selector:(SEL)aSelector
@@ -33,6 +43,7 @@ _timer = [NSTimer scheduledTimerWithTimeInterval:5.0
                                                     selector:@selector(startTimer:)
                                                     userInfo:userInfo
                                                      repeats:yesOrNo];
+//    [[NSRunLoop currentRunLoop] addTimer:lvTarget.timer forMode:NSRunLoopCommonModes];
     
     return lvTarget.timer;
 }
@@ -49,4 +60,9 @@ _timer = [NSTimer scheduledTimerWithTimeInterval:5.0
     }
 }
 
-```
+- (void)dealloc
+{
+    NSLog(@"%s", __func__);
+}
+
+@end
